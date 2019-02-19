@@ -188,7 +188,7 @@ main() {
 		sign_key "${k}" "${uid}"
 	done < <(comm -13 signed.txt ldap.txt)
 
-	gpg --check-trustdb
+	gpg -q --check-trustdb
 }
 
 main "${@}"
