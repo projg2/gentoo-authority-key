@@ -11,6 +11,6 @@ check:
 	GNUPGHOME=$${PWD}/gnupghome bash ./autosign.bash
 
 clean:
-	rm -rf gnupghome
+	rm -rf gnupghome ldap.txt signed.txt
 
 .PHONY: all check clean
