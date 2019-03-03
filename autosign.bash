@@ -179,21 +179,34 @@ main() {
 	[[ -n ${GNUPGHOME} ]] || die "Refusing to run with GNUPGHOME unset!"
 
 	refresh_keys
-	get_ldap | sort -u > ldap.txt
-	get_signed_keys | sort -u > signed.txt
+	get_ldap | sort -u > ldap.txt || die 'failure writing ldap.txt'
+	get_signed_keys | sort -u > signed.txt || die 'failure writing signed.txt'
 
 	local k uid
 	# revoke signatures on old keys
 	while read uid k; do
 		revoke_sig "${k}" "${uid}"
+		echo "${k}" >> to-send.txt || die 'failure writing to-send.txt'
 	done < <(comm -23 signed.txt ldap.txt)
 
 	# sign new keys
 	while read uid k; do
 		sign_key "${k}" "${uid}"
+		echo "${k}" >> to-send.txt || die 'failure writing to-send.txt'
 	done < <(comm -13 signed.txt ldap.txt)
 
 	gpg -q --check-trustdb
+
+	# send key updates to the keyserver
+	local retries=0
+	while [[ -s to-send.txt ]]; do
+		if gpg --send-keys $(head -n 10 to-send.txt); then
+			tail -n +11 to-send.txt > to-send.txt.tmp &&
+			mv to-send.txt.tmp to-send.txt || die 'failure writing to-send.txt'
+		else
+			[[ $(( ++retries )) -ge 5 ]] && die 'send failure limit exceeded'
+		fi
+	done
 }
 
 main "${@}"
