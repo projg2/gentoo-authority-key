@@ -168,6 +168,7 @@ sign_key() {
 	for uid in "${uids[@]}"; do
 		gpg --no-auto-check-trustdb \
 			--cert-policy-url https://www.gentoo.org/glep/glep-0079.html \
+			--default-cert-expire 1y \
 			--quick-sign-key "${key}" "${uid}"
 	done
 }
