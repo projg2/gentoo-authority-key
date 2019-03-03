@@ -132,7 +132,7 @@ sign_key() {
 	local sign_uid=${2}
 
 	# verify whether the key is suitable for signing
-	local l trust uid email uids=()
+	local l trust uid email uids=() need_full=0
 	while read l; do
 		case ${l} in
 			pub:[er]:*)
@@ -150,6 +150,8 @@ sign_key() {
 					die "Unable to parse uid: ${l}"
 				[[ ${email} == ${sign_uid} && ${trust} != [er] ]] &&
 					uids+=( "${uid}" )
+				# if there are revoked UIDs, they may collide
+				[[ ${trust} == [er] ]] && need_full=1
 				;;
 		esac
 	done < <(gpg --no-auto-check-trustdb --with-colons --list-keys "${key}")
@@ -157,7 +159,7 @@ sign_key() {
 	if [[ ${#uids[@]} -eq 0 ]]; then
 #		echo "${sign_uid}: no @g.o UID (${key})"
 		return
-	elif [[ ${#uids[@]} -eq 1 ]]; then
+	elif [[ ${#uids[@]} -eq 1 && ${need_full} -eq 0 ]]; then
 		# if UID is unambiguous, use e-mail
 		# (because people really like to put random non-formattable
 		# stuff into UIDs)
