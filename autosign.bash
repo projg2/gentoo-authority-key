@@ -166,7 +166,9 @@ sign_key() {
 
 	echo "${sign_uid}: signing new key ${key}"
 	for uid in "${uids[@]}"; do
-		gpg --no-auto-check-trustdb --quick-sign-key "${key}" "${uid}"
+		gpg --no-auto-check-trustdb \
+			--cert-policy-url https://www.gentoo.org/glep/glep-0079.html \
+			--quick-sign-key "${key}" "${uid}"
 	done
 }
 
