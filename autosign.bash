@@ -48,7 +48,7 @@ get_ldap() {
 				die "Unknown LDAP data: ${l}"
 				;;
 		esac
-	done < <(ldapsearch -Z -LLL '(gentooStatus=active)' gpgfingerprint ||
+	done < <(ldapsearch -Z -D '' -LLL '(gentooStatus=active)' gpgfingerprint ||
 		die "LDAP query failed")
 }
 
