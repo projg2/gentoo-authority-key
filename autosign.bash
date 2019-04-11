@@ -154,7 +154,7 @@ sign_key() {
 				[[ ${trust} == [er] ]] && need_full=1
 				;;
 		esac
-	done < <(gpg --no-auto-check-trustdb --with-colons --list-keys "${key}")
+	done < <(gpg --no-auto-check-trustdb --with-colons --list-keys "${key}" 2>/dev/null)
 
 	if [[ ${#uids[@]} -eq 0 ]]; then
 #		echo "${sign_uid}: no @g.o UID (${key})"
