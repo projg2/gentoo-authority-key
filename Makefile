@@ -1,13 +1,14 @@
 all:
 
 check:
-	@[ -n '$(LOCAL_KEYSERVER)' ] || { \
-		echo "Please set LOCAL_KEYSERVER to local keyserver address for pushing!"; \
+	@[ -n '$(LOCAL_KEYSERVER)' ] || [ -n '${AUTOSIGN_NO_SEND_KEYS}' ] || { \
+		echo "Please set LOCAL_KEYSERVER to local keyserver address for pushing,"; \
+		echo "or AUTOSIGN_NO_SEND_KEYS=1 to disable pushing."; \
 		exit 1; \
 	}
 	+$(MAKE) clean
 	umask 077 && mkdir -p gnupghome
-	echo 'keyserver $(LOCAL_KEYSERVER)' > gnupghome/gpg.conf
+	[ -n '${AUTOSIGN_NO_SEND_KEYS}' ] || echo 'keyserver $(LOCAL_KEYSERVER)' > gnupghome/gpg.conf
 	@echo Generating authority key ...
 	GNUPGHOME=$${PWD}/gnupghome gpg --yes --quick-gen-key 'Testing Authority Key' </dev/null
 	@echo Performing the initial run ...
