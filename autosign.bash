@@ -130,6 +130,7 @@ revoke_sig() {
 sign_key() {
 	local key=${1}
 	local sign_uid=${2}
+	local ret=1
 
 	# verify whether the key is suitable for signing
 	local l trust uid email uids=() need_full=0
@@ -158,7 +159,7 @@ sign_key() {
 
 	if [[ ${#uids[@]} -eq 0 ]]; then
 #		echo "${sign_uid}: no @g.o UID (${key})"
-		return
+		return 1
 	elif [[ ${#uids[@]} -eq 1 && ${need_full} -eq 0 ]]; then
 		# if UID is unambiguous, use e-mail
 		# (because people really like to put random non-formattable
@@ -171,8 +172,10 @@ sign_key() {
 		gpg --no-auto-check-trustdb \
 			--cert-policy-url https://www.gentoo.org/glep/glep-0079.html \
 			--default-cert-expire 1y \
-			--quick-sign-key "${key}" "${uid}"
+			--quick-sign-key "${key}" "${uid}" && ret=0
 	done
+
+	return "${ret}"
 }
 
 main() {
@@ -185,14 +188,16 @@ main() {
 	local k uid
 	# revoke signatures on old keys
 	while read uid k; do
-		revoke_sig "${k}" "${uid}"
-		echo "${k}" >> to-send.txt || die 'failure writing to-send.txt'
+		if revoke_sig "${k}" "${uid}"; then
+			echo "${k}" >> to-send.txt || die 'failure writing to-send.txt'
+		fi
 	done < <(comm -23 signed.txt ldap.txt)
 
 	# sign new keys
 	while read uid k; do
-		sign_key "${k}" "${uid}"
-		echo "${k}" >> to-send.txt || die 'failure writing to-send.txt'
+		if sign_key "${k}" "${uid}"; then
+			echo "${k}" >> to-send.txt || die 'failure writing to-send.txt'
+		fi
 	done < <(comm -13 signed.txt ldap.txt)
 
 	gpg -q --check-trustdb
