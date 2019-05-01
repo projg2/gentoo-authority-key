@@ -149,7 +149,7 @@ sign_key() {
 				email=${email%%>*}
 				[[ -n ${trust} && -n ${email} ]] ||
 					die "Unable to parse uid: ${l}"
-				[[ ${email} == ${sign_uid} && ${trust} != [er] ]] &&
+				[[ ${email,,} == ${sign_uid,,} && ${trust} != [er] ]] &&
 					uids+=( "=${uid}" )
 				# if there are revoked UIDs, they may collide
 				[[ ${trust} == [er] ]] && need_full=1
