@@ -138,7 +138,7 @@ sign_key() {
 		case ${l} in
 			pub:[er]:*)
 				# skip expired key
-				return
+				return 1
 				;;
 			uid:*)
 				trust=${l#uid:}
