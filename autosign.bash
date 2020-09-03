@@ -108,6 +108,8 @@ revoke_sig() {
 			expect {
 				"Create a revocation certificate for this signature?"
 					{ send "y\n" }
+				"Are you sure you still want to revoke it?"
+					{ send "n\n" }
 				"Really create the revocation certificates?"
 					break
 			}
