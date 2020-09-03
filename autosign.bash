@@ -112,6 +112,8 @@ revoke_sig() {
 					{ send "n\n" }
 				"Really create the revocation certificates?"
 					break
+				timeout
+					exit 1
 			}
 		}
 		send "y\n"
