@@ -185,6 +185,9 @@ sign_key() {
 main() {
 	[[ -n ${GNUPGHOME} ]] || die "Refusing to run with GNUPGHOME unset!"
 
+	# avoid running with old agent
+	gpgconf --kill all
+
 	refresh_keys
 	get_ldap | sort -u > ldap.txt || die 'failure writing ldap.txt'
 	get_signed_keys | sort -u > signed.txt || die 'failure writing signed.txt'
