@@ -100,7 +100,7 @@ revoke_sig() {
 	echo "${uid}: Revoking signature on key ${key}"
 	# TODO: support revoking only one uid?
 	# (NB: will this ever happen?)
-	expect - <<-EOF || die "revoking signature failed"
+	timeout 60 expect - <<-EOF || die "revoking signature failed"
 		spawn gpg --edit-key ${key}
 		expect "gpg>"
 		send "revsig\n"
@@ -112,8 +112,6 @@ revoke_sig() {
 					{ send "n\n" }
 				"Really create the revocation certificates?"
 					break
-				timeout
-					exit 1
 			}
 		}
 		send "y\n"
