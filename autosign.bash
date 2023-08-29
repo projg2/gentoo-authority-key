@@ -6,13 +6,23 @@
 
 : "${KEYRING_URL:=https://qa-reports.gentoo.org/output/active-devs.gpg}"
 : "${AUTOSIGN_FILTER:=(gentooStatus=active)}"
+# At the minimum, make (almost) every call to GPG with the same timestamp, at
+# the START of this script.
+# The script takes a few seconds to run, so this makes all new
+# signatures/revokes be at exactly the same timestamp.
+# "almost" => see the exception where we list valid signatures at a time in the
+# future, to see what signatures would have expired.
+: "${FAKED_EPOCH:=$(date +%s)!}"
 
 # Used for trust args to gpg calls
 export -a trust_args
 
 # Baseline GPG
 gpgcmd=(
-	gpg -q --no-auto-check-trustdb
+	gpg
+	--quiet
+	--no-auto-check-trustdb
+	--faked-system-time="${FAKED_EPOCH}"
 )
 
 warn() {
@@ -28,7 +38,7 @@ die() {
 refresh_keys() {
 	# we trust qa-scripts to refresh them for us
 	wget -q -O keyring.gpg "${KEYRING_URL}" || die "Failed to fetch keyring"
-	gpg -q --import keyring.gpg || die "Failed to import keyring"
+	"${gpgcmd[@]}" -q --import keyring.gpg || die "Failed to import keyring"
 }
 
 # Get UID-fingerprint mapping from LDAP, for active devs.
@@ -92,8 +102,18 @@ get_signed_keys() {
 	op=list-keys
 	#op=check-sigs
 
+	# Use a date 1 week into the future, to see what signatures WILL have
+	# expired, and need refreshing before then.
+	# TODO: is 1 week enough?
+	future_epoch="$(( $FAKED_EPOCH + (86400 * 7) ))!"
+
 	local f=${op}.txt
-	gpg --with-colons "${trust_args[@]}" --${op} >${f}
+	"${gpgcmd[@]}" \
+		--with-colons \
+		"${trust_args[@]}" \
+		--faked-system-time="$future_epoch" \
+		--${op} \
+		>${f}
 
 	while read l; do
 		# split the gpg line correctly into fields
@@ -147,7 +167,9 @@ get_signed_keys() {
 					warn "Unable to parse uid: ${l}"
 					continue
 				fi
-				# The uid validity *should* be 'f' if the signature is present.
+				# The uid validity *should* be 'f' if signed by the trusted key.
+				# & still valid (not revoked or expired).
+				# TODO: under what conditions might it be (m)arginally valid or (u)ltimately valid?
 				[[ ${uid_validity} != f ]] && continue
 				[[ ${op} == list-keys ]] && printf "%s\t%s\n" "${uid_email,,}" "${fpr}"
 				;;
