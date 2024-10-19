@@ -417,18 +417,32 @@ main() {
 
 	"${gpgcmd[@]}" -q --check-trustdb
 
-	if [[ ! ${AUTOSIGN_NO_SEND_KEYS} ]]; then
+	# Check if not sending keys.
+	[[ ${AUTOSIGN_NO_SEND_KEYS} ]] && return
+
+	keyservers=( hkps://keys.gentoo.org )
+	# Try upload to ALL of the servers, in case there is weirdness
+	raw_keyserver_options=$(dig +short _hosts.keys.gentoo.org  IN TXT \
+			|tr -d '"' \
+			|awk '/_hosts/{next} /gentoo.org/{h=gensub(".gentoo.org","",1,$1); printf "hkps://%s.keys.gentoo.org\n", h}'
+		)
+	for k in $raw_keyserver_options ; do
+		keyservers+=( "$k" )
+	done
+
+
+	for keyserver in "${keyservers[@]}"; do
+		cp -f to-send.src.txt to-send.txt
 		# send key updates to the keyserver
 		local retries=0
 		while [[ -s to-send.txt ]]; do
 			if gpg "${trust_args[@]}" --send-keys $(head -n 10 to-send.txt); then
-				tail -n +11 to-send.txt > to-send.txt.tmp &&
-				mv to-send.txt.tmp to-send.txt || die 'failure writing to-send.txt'
+				sed -i -e 1,10d to-send.txt || die 'failure writing to-send.txt'
 			else
-				[[ $(( ++retries )) -ge 5 ]] && die 'send failure limit exceeded'
+				[[ $(( ++retries )) -ge 5 ]] && break "send failure limit exceeded to $keyserver"
 			fi
 		done
-	fi
+	done
 }
 
 main "${@}"
