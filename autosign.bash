@@ -191,6 +191,14 @@ main() {
 	get_ldap | sort -u > ldap.txt || die 'failure writing ldap.txt'
 	get_signed_keys | sort -u > signed.txt || die 'failure writing signed.txt'
 
+	if ! [[ -s ldap.txt ]] ; then
+		# Avoid revoking every key we trust if our LDAP query fails
+		# because of e.g. TLS certificate expiry or network issues.
+		if [[ ! ${AUTOSIGN_ALLOW_EMPTY_LDAP} ]]; then
+			die 'ldap search yielded no keys'
+		fi
+	fi
+
 	local k uid
 	# revoke signatures on old keys
 	while read uid k; do
